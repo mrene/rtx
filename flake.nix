@@ -33,6 +33,7 @@
               shfmt
               nodejs
               cargo-release
+              direnv
             ];
           };
         }

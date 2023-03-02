@@ -1,4 +1,5 @@
-{ pkgs, lib, fetchFromGitHub, rustPlatform, coreutils, bash, direnv, perl }:
+{ lib, stdenv, fetchFromGitHub, rustPlatform, direnv, coreutils, bash, perl, darwin ? null }:
+
 rustPlatform.buildRustPackage {
   pname = "rtx";
   version = "1.20.1";
@@ -9,7 +10,11 @@ rustPlatform.buildRustPackage {
     lockFile = ./Cargo.lock;
   };
 
-  buildInputs = with pkgs; [ coreutils bash direnv gnused git gawk ];
+  # Need this to ensure openssl-src's build uses an available version of `perl`
+  # https://github.com/alexcrichton/openssl-src-rs/issues/45
+  nativeBuildInputs = [ perl ];
+
+  buildInputs = lib.optionals stdenv.isDarwin [ darwin.apple_sdk.frameworks.Security ];
 
   prePatch = ''
     substituteInPlace ./test/data/plugins/**/bin/* \
@@ -29,10 +34,6 @@ rustPlatform.buildRustPackage {
     RUST_BACKTRACE=full cargo test --features clap_mangen -- \
       --skip cli::plugins::ls::tests::test_plugin_list_urls
   '';
-
-  # Need this to ensure openssl-src's build uses an available version of `perl`
-  # https://github.com/alexcrichton/openssl-src-rs/issues/45
-  OPENSSL_SRC_PERL = "${perl}/bin/perl";
 
   meta = with lib; {
     description = "Polyglot runtime manager (asdf rust clone)";
